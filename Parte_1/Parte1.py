@@ -53,7 +53,7 @@ def main():
         print("Por favor, proporciona el nombre del archivo.")
         return
 
-    # Obtén el nombre del archivo desde los argumentos de línea de comandos
+    # Acá obtenemos el nombre del archivo desde los argumentos pasados por línea de comandos
     file_path = sys.argv[1]
 
     # Leemos el archivo
