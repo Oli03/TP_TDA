@@ -1,5 +1,11 @@
 import sys
 
+def imprimir_dp(DP, n):
+    for i in range(n):
+        print(DP[i])
+
+    print("Termine de imprimir la matriz")
+
 def juego_monedas(coins):
     """
     Función que simula el juego de las monedas entre Sophia y Mateo utilizando programación dinámica.
@@ -17,59 +23,66 @@ def juego_monedas(coins):
     DP = [[-1] * n for _ in range(n)]       # Matriz para almacenar las ganancias máximas de Sophia
     move = [[None] * n for _ in range(n)]   # Matriz para almacenar las elecciones de Sophia ('i' o 'j')
 
-    # Función recursiva para calcular la ganancia máxima de Sophia
-    def F(i, j):
-        if i > j:
-            return 0
-        if DP[i][j] != -1:
-            return DP[i][j]
-        if i == j:
-            DP[i][j] = coins[i]
-            move[i][j] = 'i'
-            return DP[i][j]
+    #imprimir_dp(DP, n)
 
-        # Opción 1: Sophia elige la moneda en posición i
-        # Simulamos la elección de Mateo
-        if i + 1 <= j:
-            if coins[i + 1] >= coins[j]:
-                # Mateo elige la moneda en posición i + 1
-                new_i, new_j = i + 2, j
+    for intervalo in range(1, n + 1):
+        for i in range(n - intervalo + 1):
+            j = i + intervalo - 1  # j es el final del subintervalo
+
+            if i == j:
+                DP[i][j] = coins[i]
+                move[i][j] = 'i'
             else:
-                # Mateo elige la moneda en posición j
-                new_i, new_j = i + 1, j - 1
-        else:
-            # No hay monedas para que Mateo elija
-            new_i, new_j = i + 1, j
+                # Opción 1: Sophia elige la moneda en posición i
+                # Simulamos la elección de Mateo
+                if i + 1 <= j:
+                    if coins[i + 1] >= coins[j]:
+                        # Mateo elige la moneda en posición i + 1
+                        new_i, new_j = i + 2, j
+                    else:
+                        # Mateo elige la moneda en posición j
+                        new_i, new_j = i + 1, j - 1
+                else:
+                    # No hay monedas para que Mateo elija
+                    new_i, new_j = i + 1, j
 
-        option1 = coins[i] + F(new_i, new_j)
+                if new_i >= n:
+                    new_i = new_i - n
 
-        # Opción 2: Sophia elige la moneda en posición j
-        # Simulamos la elección de Mateo
-        if i <= j - 1:
-            if coins[i] >= coins[j - 1]:
-                # Mateo elige la moneda en posición i
-                new_i2, new_j2 = i + 1, j - 1
-            else:
-                # Mateo elige la moneda en posición j - 1
-                new_i2, new_j2 = i, j - 2
-        else:
-            # No hay monedas para que Mateo elija
-            new_i2, new_j2 = i, j - 1
+                if new_j >= n:
+                    new_j = new_j - n
+                
+                option1 = coins[i] + DP[new_i][new_j]
 
-        option2 = coins[j] + F(new_i2, new_j2)
+                # Opción 2: Sophia elige la moneda en posición j
+                # Simulamos la elección de Mateo
+                if i <= j - 1:
+                    if coins[i] >= coins[j - 1]:
+                        # Mateo elige la moneda en posición i
+                        new_i2, new_j2 = i + 1, j - 1
+                    else:
+                        # Mateo elige la moneda en posición j - 1
+                        new_i2, new_j2 = i, j - 2
+                else:
+                    # No hay monedas para que Mateo elija
+                    new_i2, new_j2 = i, j - 1
 
-        # Elegimos la mejor opción para Sophia
-        if option1 >= option2:
-            DP[i][j] = option1
-            move[i][j] = 'i'
-        else:
-            DP[i][j] = option2
-            move[i][j] = 'j'
+                if new_i2 >= n:
+                    new_i2 = new_i2 - n
 
-        return DP[i][j]
+                if new_j2 >= n:
+                    new_j2 = new_j2 - n
+                
+                option2 = coins[j] + DP[new_i2][new_j2]
 
-    # Ejecutamos la función desde el estado inicial
-    total_sophia = F(0, n - 1)
+                # Elegimos la mejor opción para Sophia
+                if option1 >= option2:
+                    DP[i][j] = option1
+                    move[i][j] = 'i'
+                else:
+                    DP[i][j] = option2
+                    move[i][j] = 'j'
+
 
     # Reconstruimos las elecciones de Sophia y Mateo
     elecciones = []
@@ -117,6 +130,8 @@ def juego_monedas(coins):
             else:
                 # No hay monedas para Mateo
                 j -= 1
+
+    #imprimir_dp(DP, n)
 
     return S_Sophia, S_Mateo, elecciones
 
