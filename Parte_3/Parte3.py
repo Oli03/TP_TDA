@@ -4,134 +4,136 @@ def leer_archivo(ruta_archivo):
     y separa las demandas de filas, columnas y longitud de barcos
     """
     with open(ruta_archivo, 'r') as file:
-        # Leer líneas, ignorando comentarios
         lineas = [linea.strip() for linea in file if not linea.strip().startswith('#')]
         
-        # Encontrar índices de líneas en blanco
         indices_lineas_blancas = [i for i, linea in enumerate(lineas) if linea == '']
         
-        # Separar secciones
         demandas_filas = [int(linea) for linea in lineas[:indices_lineas_blancas[0]]]
         demandas_columnas = [int(linea) for linea in lineas[indices_lineas_blancas[0]+1:indices_lineas_blancas[1]]]
         largos_barcos = [int(linea) for linea in lineas[indices_lineas_blancas[1]+1:] if linea]
         
         return demandas_filas, demandas_columnas, largos_barcos
 
-def es_posicion_valida(tablero, fila, columna, largo, direccion):
-    """
-    Verifica si se puede colocar un barco en una posición dada
-    sin tocar otros barcos horizontal, vertical o diagonalmente
-    """
+
+def batalla_naval_individual(largo_barcos, demandas_filas, demandas_columnas):
+    n = len(demandas_filas)
+    m = len(demandas_columnas)
+
+    tablero = [[0 for _ in range(m)] for _ in range(n)]
+    largo_barcos.sort(reverse=True)
+    solucion = [tablero, float('inf')]
+
+    batalla_naval_individual_backtracking(tablero, largo_barcos, demandas_filas, demandas_columnas, solucion)
+    for fila in solucion[0]:
+        print(fila)
+    
+    demanda_total = sum(demandas_filas) + sum(demandas_columnas)
+    demanda_cumplida = demanda_total - solucion[1]
+
+    return demanda_cumplida, demanda_total
+
+
+def batalla_naval_individual_backtracking(tablero, largo_barcos, demandas_filas, demandas_columnas, solucion):
+    demanda_inicial = sum(demandas_filas) + sum(demandas_columnas)
+
+    if demanda_inicial < solucion[1]:
+        solucion[0] = [list(row) for row in tablero]
+        solucion[1] = demanda_inicial
+    if not largo_barcos:
+        return
+    if solucion[1] <= demanda_inicial - sum( barco*2 for barco in largo_barcos):
+        return
+    
+    batalla_naval_individual_backtracking(tablero, largo_barcos[1:], demandas_filas, demandas_columnas, solucion)
+
+    for i in range(len(tablero)):
+        if demandas_filas[i] > 0:
+            for j in range(len(tablero[0])):
+                if demandas_columnas[j] > 0:
+                    procesar_barco(tablero, largo_barcos, i, j, demandas_filas, demandas_columnas, solucion, True)
+                    procesar_barco(tablero, largo_barcos, i, j, demandas_filas, demandas_columnas, solucion, False)
+        
+
+def procesar_barco(tablero, largo_barcos, fila, columna, demandas_filas, demandas_columnas, solucion, es_horizontal):
+    if intentar_colocar_barco(tablero, fila, columna, largo_barcos[0], es_horizontal, demandas_filas, demandas_columnas):
+        colocar_barco(tablero, fila, columna, largo_barcos[0], demandas_filas, demandas_columnas, es_horizontal)
+        batalla_naval_individual_backtracking(tablero, largo_barcos[1:], demandas_filas, demandas_columnas, solucion)
+        quitar_barco(tablero, fila, columna, largo_barcos[0], demandas_filas, demandas_columnas, es_horizontal)
+
+
+def colocar_barco(tablero, fila, columna, largos_barco, demandas_filas, demandas_columnas, es_horizontal):
+    if es_horizontal:
+        for i in range(columna, columna+ largos_barco):
+            tablero[fila][i] = 1
+        demandas_filas[fila] -= largos_barco
+        for i in range(columna, columna+ largos_barco):
+            demandas_columnas[i] -= 1
+    else:
+        for i in range(fila, fila+ largos_barco):
+            tablero[i][columna] = 1
+        demandas_columnas[columna] -= largos_barco
+        for i in range(fila, fila+ largos_barco):
+            demandas_filas[i] -= 1
+
+
+def quitar_barco(tablero, fila, columna, largos_barco, demandas_filas, demandas_columnas, es_horizontal):
+    if es_horizontal:
+        for i in range(columna, columna+ largos_barco):
+            tablero[fila][i] = 0
+        demandas_filas[fila] += largos_barco
+        for i in range(columna, columna+ largos_barco):
+            demandas_columnas[i] += 1
+    else:
+        for i in range(fila, fila+ largos_barco):
+            tablero[i][columna] = 0
+        demandas_columnas[columna] += largos_barco
+        for i in range(fila, fila+ largos_barco):
+            demandas_filas[i] += 1
+
+def verificar_limites_barco(tablero, fila, columna, largo, es_horizontal):
     n, m = len(tablero), len(tablero[0])
     
-    # Definir los posibles incrementos según la dirección
-    incrementos = {
-        'horizontal': (0, 1),
-        'vertical': (1, 0)
-    }
+    if es_horizontal:
+        return columna + largo <= m
+    else:
+        return fila + largo <= n
+
+def verificar_ocupacion_adyacente(tablero, fila, columna, largo, es_horizontal):
+    n, m = len(tablero), len(tablero[0])
     
-    df, dc = incrementos[direccion]
-    
-    # Verificar los límites del tablero
-    if (fila + df * (largo-1) < 0 or fila + df * (largo-1) >= n or
-        columna + dc * (largo-1) < 0 or columna + dc * (largo-1) >= m):
-        return False
-    
-    # Verificar si hay espacio para el barco y sus alrededores
-    for i in range(-1, 2):
-        for j in range(-1, 2):
-            for k in range(largo):
-                nueva_fila = fila + df * k + i
-                nueva_columna = columna + dc * k + j
+    for i in range(largo):
+        fil, col = (fila, columna + i) if es_horizontal else (fila + i, columna)
+        
+        for dx in [-1, 0, 1]:
+            for dy in [-1, 0, 1]:
+                nueva_fila = fil + dx
+                nueva_columna = col + dy
                 
-                # Verificar límites del tablero
-                if (0 <= nueva_fila < n and 0 <= nueva_columna < m):
-                    # Si hay un barco en cualquier posición cercana, no es válido
+                if (dx != 0 or dy != 0) and 0 <= nueva_fila < n and 0 <= nueva_columna < m:
                     if tablero[nueva_fila][nueva_columna] != 0:
                         return False
     
     return True
 
-def colocar_barco(tablero, barco, posiciones, demandas_filas, demandas_columnas):
-    """
-    Función de backtracking para colocar los barcos
-    """
-    # Si ya se colocaron todos los barcos, retornar True
-    if barco == len(posiciones):
-        return True
+def intentar_colocar_barco(tablero, fila, columna, largo, es_horizontal, demandas_filas, demandas_columnas):
+    if not verificar_limites_barco(tablero, fila, columna, largo, es_horizontal):
+        return False
     
-    n, m = len(tablero), len(tablero[0])
-    largo_barco = posiciones[barco]
-    
-    # Probar colocar el barco en horizontal y vertical
-    for direccion in ['horizontal', 'vertical']:
-        for fila in range(n):
-            for columna in range(m):
-                # Si la posición es válida y no excede las demandas
-                if (es_posicion_valida(tablero, fila, columna, largo_barco, direccion) and
-                    puede_colocar_barco(tablero, fila, columna, largo_barco, direccion, 
-                                        demandas_filas, demandas_columnas)):
-                    
-                    # Marcar el barco en el tablero
-                    for k in range(largo_barco):
-                        if direccion == 'horizontal':
-                            tablero[fila][columna + k] = barco + 1
-                        else:
-                            tablero[fila + k][columna] = barco + 1
-                    
-                    # Registrar la posición del barco
-                    resultados[barco] = (fila, columna) if largo_barco == 1 else (fila, columna, 
-                                         fila + (1 if direccion == 'vertical' else 0), 
-                                         columna + (1 if direccion == 'horizontal' else 0))
-                    
-                    # Intentar colocar el siguiente barco
-                    if colocar_barco(tablero, barco + 1, posiciones, demandas_filas, demandas_columnas):
-                        return True
-                    
-                    # Deshacer la colocación del barco si no funciona
-                    for k in range(largo_barco):
-                        if direccion == 'horizontal':
-                            tablero[fila][columna + k] = 0
-                        else:
-                            tablero[fila + k][columna] = 0
-                    
-                    resultados[barco] = None
-    
-    return False
-
-def puede_colocar_barco(tablero, fila, columna, largo, direccion, demandas_filas, demandas_columnas):
-    """
-    Verifica si colocar este barco no excede las demandas de filas y columnas
-    """
-    n, m = len(tablero), len(tablero[0])
-    
-    # Contar ocupaciones actuales de filas y columnas
-    ocupacion_filas = [sum(1 for cell in row if cell != 0) for row in tablero]
-    ocupacion_columnas = [sum(1 for row in tablero for cell in [row[j]] if cell != 0) for j in range(m)]
-    
-    # Verificar para la dirección horizontal
-    if direccion == 'horizontal':
-        # Revisar la demanda de la fila actual
-        if ocupacion_filas[fila] + largo > demandas_filas[fila]:
+    if es_horizontal:
+        if demandas_filas[fila] < largo or any(demandas_columnas[columna + i] < 1 for i in range(largo)):
             return False
-        
-        # Revisar la demanda de las columnas
-        for k in range(largo):
-            if ocupacion_columnas[columna + k] + 1 > demandas_columnas[columna + k]:
-                return False
-    
-    # Verificar para la dirección vertical
-    else:  # vertical
-        # Revisar la demanda de las filas
-        for k in range(largo):
-            if ocupacion_filas[fila + k] + 1 > demandas_filas[fila + k]:
-                return False
-        
-        # Revisar la demanda de la columna actual
-        if ocupacion_columnas[columna] + largo > demandas_columnas[columna]:
+    else:
+        if demandas_columnas[columna] < largo or any(demandas_filas[fila + i] < 1 for i in range(largo)):
             return False
     
-    return True
+    casillas_ocupadas = any(
+        tablero[fila + i][columna] if not es_horizontal else tablero[fila][columna + i]
+        for i in range(largo)
+    )
+    if casillas_ocupadas:
+        return False
+    
+    return verificar_ocupacion_adyacente(tablero, fila, columna, largo, es_horizontal)
 
 def main():
     import sys
@@ -142,31 +144,12 @@ def main():
     
     ruta_archivo = sys.argv[1]
     
-    # Leer datos del archivo
     demandas_filas, demandas_columnas, largos_barcos = leer_archivo(ruta_archivo)
     
-    # Determinar tamaño del tablero (puede ser ajustado según necesidad)
     n = len(demandas_filas)
     m = len(demandas_columnas)
     
-    # Crear tablero inicialmente vacío
-    tablero = [[0 for _ in range(m)] for _ in range(n)]
-    
-    # Variable global para guardar resultados
-    global resultados
-    resultados = [None] * len(largos_barcos)
-    
-    # Intentar colocar los barcos
-    colocar_barco(tablero, 0, largos_barcos, demandas_filas, demandas_columnas)
-    
-    # Mostrar resultados
-    print("Posiciones:")
-    for i, pos in enumerate(resultados):
-        print(f"{i}: {pos}")
-    
-    # Calcular demanda cumplida
-    demanda_cumplida = sum(1 if pos is not None else 0 for pos in resultados)
-    demanda_total = sum(demandas_filas) + sum(demandas_columnas)
+    demanda_cumplida, demanda_total = batalla_naval_individual(largos_barcos, demandas_filas, demandas_columnas)
     
     print(f"Demanda cumplida: {demanda_cumplida}")
     print(f"Demanda total: {demanda_total}")
