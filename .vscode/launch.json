@@ -1,0 +1,8 @@
+{
+    "name": "Python: Archivo Actual",
+    "type": "python",
+    "request": "launch",
+    "program": "${file}",
+    "console": "integratedTerminal",
+    "args": ["Parte_2/TP2_data/3.txt"]
+}
