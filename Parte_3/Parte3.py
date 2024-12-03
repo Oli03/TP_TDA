@@ -94,9 +94,6 @@ def quitar_barco(tablero, fila, columna, largos_barco, demandas_filas, demandas_
 
 
 def verificar_limites_barco(tablero, fila, columna, largo, es_horizontal):
-    """
-    Verifica si un barco cabe dentro de los límites del tablero.
-    """
     n, m = len(tablero), len(tablero[0])
     
     if es_horizontal:
