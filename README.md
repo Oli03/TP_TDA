@@ -3,7 +3,7 @@
 
 - Oliver Weber 111138
 - Agustín Reinaldo Colman Salinas 108804
-- 
+- Miguel Angel Fonzalida 86125
 
 # Trabajo Práctico: Juegos de Hermanos
 
